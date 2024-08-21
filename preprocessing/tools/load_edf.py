@@ -12,7 +12,7 @@ class Edf_loader():
         return self.raw
 
     def load_edf(self):
-        self.raw = mne.io.read_raw_edf(self.path, preload=False, verbose="WARNING")
+        self.raw = mne.io.read_raw_edf(self.path, preload=False, verbose="CRITICAL")
     
 class Path_mgr():
     '''
