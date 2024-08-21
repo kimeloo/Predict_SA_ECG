@@ -21,4 +21,5 @@ def run():
     df.to_csv('results/sampling_rate.csv', index=False)
 
 if __name__ == '__main__':
+    logger = logging.getLogger()
     run()

@@ -4,13 +4,11 @@ import pandas as pd
 logger = logging.getLogger(__name__)
 
 def quality_check(raw):
-    nd_raw = raw.get_data()
-    # except AssertionError:
-    #     logger.error("get data AssertionError")
-    #     chunk_size = int(raw.info['sfreq'] * 1)
-    #     data_chunks, times_chunks = get_data_in_chunks(raw=raw, chunk_size=chunk_size, picks=None, return_times=True)
-    #     return 
-    #     results.append(sum(func(chunk) for chunk in data_chunks))
+    try:
+        nd_raw = raw.get_data()
+    except AssertionError:
+        logger.error("get_data AssertionError")
+        return 999
 
     df = pd.DataFrame(nd_raw.T)
     missing_values = df.isnull().sum().sum()
@@ -24,4 +22,5 @@ def run():
     df.to_csv('results/quality_check.csv', index=False)
 
 if __name__ == '__main__':
+    logger = logging.getLogger()
     run()

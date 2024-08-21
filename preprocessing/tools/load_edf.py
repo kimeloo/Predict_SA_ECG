@@ -67,3 +67,6 @@ class Path_mgr():
         path = Path(root)
         files = [str(file.resolve()) for file in path.rglob('*') if file.is_file()]
         return files
+
+if __name__ == '__main__':
+    print("Do not run this file directly")
