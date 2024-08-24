@@ -1,5 +1,4 @@
 import logging
-import matplotlib.pyplot as plt
 import pandas as pd
 logger = logging.getLogger(__name__)
 

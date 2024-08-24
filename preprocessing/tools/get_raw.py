@@ -35,6 +35,7 @@ def get_raw(func, channel="", return_raw=False):
             
             tot_files.extend(files)
     print(f'files : {len(tot_files)}')
+    files = []
     results = []
     results_raw = []
     for file in tqdm(tot_files):
@@ -49,26 +50,26 @@ def get_raw(func, channel="", return_raw=False):
                         channel = ch_name
                         break
                 else:
-                    tot_files.remove(file)
                     logger.error('No ECG CHANNEL, remove : {}'.format(file))
                     continue
             elif is_valid_channel(raw, channel):
                 pass
             else:
                 logger.critical("INVALID CHANNEL NAME")
-                return tot_files, [], []
+                return files, [], []
             
             ecg_picks = mne.pick_channels(raw.info["ch_names"], include=[channel])
             raw = raw.copy().pick(picks=ecg_picks)
 
         
         results.append(func(raw))
+        files.append(file)
         if return_raw:
             results_raw.append(raw)
     if return_raw:
-        return tot_files, results, results_raw
+        return files, results, results_raw
     else:
-        return tot_files, results
+        return files, results
 
 if __name__ == '__main__':
     print(f'Use this function by run(Your_Function), Returns result')
