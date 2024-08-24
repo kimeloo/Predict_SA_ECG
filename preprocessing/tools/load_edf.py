@@ -45,7 +45,11 @@ class Path_mgr():
             return files
         else:
             random.seed(random_seed)
-            return random.sample(files, n_files)
+            try:
+                random_result = random.sample(files, n_files)
+            except ValueError:
+                random_result = files.copy()
+            return random_result
 
     def __get_path_base(self):
         if self.operating_system == "Windows":
