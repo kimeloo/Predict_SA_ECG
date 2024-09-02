@@ -1,10 +1,7 @@
-from pyedflib import highlevel
+import mne
 import random
 import platform
 from pathlib import Path
-import logging
-
-logger = logging.getLogger(__name__)
 
 class Edf_loader():
     def __init__(self, path):
@@ -15,17 +12,7 @@ class Edf_loader():
         return self.raw
 
     def load_edf(self):
-        try:
-            self.raw = (True,highlevel.read_edf(self.path))
-        except OSError as e:
-            logger.error("pyEDFlib error while opening : {}".format(self.path))
-            import mne
-            try:
-                self.raw = ('mne', mne.io.read_raw_edf(self.path, preload=False, verbose="CRITICAL"))
-            except:
-                self.raw = (None,)
-            
-
+        self.raw = mne.io.read_raw_edf(self.path, preload=False, verbose="CRITICAL")
     
 class Path_mgr():
     '''
