@@ -18,5 +18,6 @@ if __name__ == '__main__':
     # from . import edf_sampling_rate
     # edf_sampling_rate.run()
 
-    from . import edf_quality_check
-    edf_quality_check.run()
+    # from . import edf_quality_check
+    # edf_quality_check.run()
+    
