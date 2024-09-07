@@ -4,12 +4,14 @@ import ftplib
 from io import BytesIO
 
 # FTP 설정
-from .env import ftp_host, ftp_port, ftp_user, ftp_password
+from . import env
+ftp_host, ftp_port, ftp_user, ftp_password = env.ftp_host, env.ftp_port, env.ftp_user, env.ftp_password
 npz_folder = '/Main/Capstone/results/upsampled'  # FTP 서버 내의 경로
 
 # FTP 접속 및 npz 파일 목록 불러오기
-ftp = ftplib.FTP(ftp_host, ftp_port)
-ftp.login(ftp_user, ftp_password)
+ftp = ftplib.FTP()
+ftp.connect(host=ftp_host, port=ftp_port)
+ftp.login(user=ftp_user, passwd=ftp_password)
 npz_files = [f for f in ftp.nlst(npz_folder) if f.endswith('.npz')]
 
 def data_generator(npz_files, batch_size):
@@ -51,7 +53,6 @@ def data_generator(npz_files, batch_size):
         if len(batch_data) > 0:
             yield np.array([x[0] for x in batch_data]), np.array([x[1] for x in batch_data])
 
-import tensorflow as tf
 import keras
 
 batch_size = 16
