@@ -1,13 +1,29 @@
 import os
 import numpy as np
+import ftplib
+from io import BytesIO
+
+# FTP 설정
+from .env import ftp_host, ftp_port, ftp_user, ftp_password
+npz_folder = '/Main/Capstone/results/upsampled'  # FTP 서버 내의 경로
+
+# FTP 접속 및 npz 파일 목록 불러오기
+ftp = ftplib.FTP(ftp_host, ftp_port)
+ftp.login(ftp_user, ftp_password)
+npz_files = [f for f in ftp.nlst(npz_folder) if f.endswith('.npz')]
 
 def data_generator(npz_files, batch_size):
     while True:
         batch_data = []
         for npz_file in npz_files:
             try:
+                # FTP에서 npz 파일을 메모리로 스트리밍
+                data_stream = BytesIO()
+                ftp.retrbinary(f'RETR {os.path.join(npz_folder, npz_file)}', data_stream.write)
+                data_stream.seek(0)
+                
                 # .npz 파일 열기
-                data = np.load(os.path.join(npz_folder, npz_file))
+                data = np.load(data_stream)
                 for array_name in data.files:
                     inputs = data[array_name]
 
@@ -17,8 +33,13 @@ def data_generator(npz_files, batch_size):
                         labels = 0
 
                 batch_data.append((inputs, labels))
-            except:
-                print(f"파일 {npz_file} 처리 중 오류 발생: 이 파일을 건너뜁니다.")
+
+                # 메모리 해제
+                data_stream.close()
+                data.close()
+
+            except Exception as e:
+                print(f"파일 {npz_file} 처리 중 오류 발생: {e}")
                 continue
 
             # 배치 크기에 도달하면 yield
@@ -32,11 +53,7 @@ def data_generator(npz_files, batch_size):
 
 import tensorflow as tf
 import keras
-# from tensorflow.keras.models import Sequential
-# from tensorflow.keras.layers import SimpleRNN, Dense
 
-npz_folder = 'E:\\Capstone\\results\\upsampled'
-npz_files = [f for f in os.listdir(npz_folder) if f.endswith('.npz')]
 batch_size = 16
 
 # RNN 모델 정의 (예시)
@@ -51,5 +68,7 @@ model = keras.Sequential([
 model.compile(optimizer='adam', loss='binary_crossentropy')
 
 # 모델 학습 (generator 사용)
-# model.fit_generator(data_generator(npz_files, batch_size=16), steps_per_epoch=len(npz_files)//32, epochs=10)
 model.fit(data_generator(npz_files, batch_size=batch_size), steps_per_epoch=len(npz_files)//batch_size, epochs=10)
+
+# FTP 연결 닫기
+ftp.quit()
