@@ -1,31 +1,13 @@
 import os
 import numpy as np
-import ftplib
-from io import BytesIO
-
-# FTP 설정
-from . import env
-ftp_host, ftp_port, ftp_user, ftp_password = env.ftp_host, env.ftp_port, env.ftp_user, env.ftp_password
-npz_folder = '/Main/Capstone/results/upsampled'  # FTP 서버 내의 경로
-
-# FTP 접속 및 npz 파일 목록 불러오기
-ftp = ftplib.FTP()
-ftp.connect(host=ftp_host, port=ftp_port)
-ftp.login(user=ftp_user, passwd=ftp_password)
-npz_files = [f for f in ftp.nlst(npz_folder) if f.endswith('.npz')]
 
 def data_generator(npz_files, batch_size):
     while True:
         batch_data = []
         for npz_file in npz_files:
             try:
-                # FTP에서 npz 파일을 메모리로 스트리밍
-                data_stream = BytesIO()
-                ftp.retrbinary(f'RETR {os.path.join(npz_folder, npz_file)}', data_stream.write)
-                data_stream.seek(0)
-                
                 # .npz 파일 열기
-                data = np.load(data_stream)
+                data = np.load(os.path.join(npz_folder, npz_file))
                 for array_name in data.files:
                     inputs = data[array_name]
 
@@ -35,13 +17,8 @@ def data_generator(npz_files, batch_size):
                         labels = 0
 
                 batch_data.append((inputs, labels))
-
-                # 메모리 해제
-                data_stream.close()
-                data.close()
-
-            except Exception as e:
-                print(f"파일 {npz_file} 처리 중 오류 발생: {e}")
+            except:
+                print(f"파일 {npz_file} 처리 중 오류 발생: 이 파일을 건너뜁니다.")
                 continue
 
             # 배치 크기에 도달하면 yield
@@ -53,9 +30,15 @@ def data_generator(npz_files, batch_size):
         if len(batch_data) > 0:
             yield np.array([x[0] for x in batch_data]), np.array([x[1] for x in batch_data])
 
+import tensorflow as tf
 import keras
+# from tensorflow.keras.models import Sequential
+# from tensorflow.keras.layers import SimpleRNN, Dense
 
+npz_folder = '/Volumes/Samsung T5/Capstone/upsampled'
+npz_files = [f for f in os.listdir(npz_folder) if f.endswith('.npz')]
 batch_size = 16
+epoch = 10
 
 # RNN 모델 정의 (예시)
 model = keras.Sequential([
@@ -66,10 +49,44 @@ model = keras.Sequential([
     keras.layers.Dense(1, activation='sigmoid')  # 이진 분류 (apnea/normal)
 ])
 
-model.compile(optimizer='adam', loss='binary_crossentropy')
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
 # 모델 학습 (generator 사용)
-model.fit(data_generator(npz_files, batch_size=batch_size), steps_per_epoch=len(npz_files)//batch_size, epochs=10)
+# model.fit_generator(data_generator(npz_files, batch_size=16), steps_per_epoch=len(npz_files)//32, epochs=10)
+history = model.fit(data_generator(npz_files, batch_size=batch_size), steps_per_epoch=len(npz_files)//batch_size, epochs=epoch)
 
-# FTP 연결 닫기
-ftp.quit()
+# 모델 평가
+test_loss, test_acc = model.evaluate(data_generator(npz_files, batch_size=batch_size), steps=len(npz_files)//batch_size)
+print(f'Test loss: {test_loss}\nTest accuracy: {test_acc}')
+
+# 정확도, 오차, confusionmatrix 그리기
+import matplotlib.pyplot as plt
+plt.figure(figsize = (10,5))
+epoch_range = np.arange(1, epoch + 1)
+# 정확도 그래프
+plt.subplot(1, 3, 1)
+plt.plot(history.history['accuracy'])
+plt.plot(history.history['val_accuracy'])
+plt.legend(['Training', 'Validation'], loc='upper left')
+plt.title('Accuracy')
+plt.xlabel('epoch')
+plt.ylabel('accuracy')
+# 오차 그래프
+plt.subplot(1, 3, 2)
+plt.plot(history.history['loss'])
+plt.plot(history.history['val_loss'])
+plt.legend(['Training', 'Validation'])
+plt.title('Loss')
+plt.xlabel('epoch')
+plt.ylabel('loss')
+# # confusion matrix
+# plt.subplot(1,3,3)
+# conf_mat_norm = conf_mat.astype('float') / conf_mat.sum(axis=1)[:, np.newaxis]
+# plt.imshow(conf_mat_norm, cmap='Blues', interpolation='nearest')
+# plt.colorbar()
+# plt.xlabel('Predicted')
+# plt.ylabel('Actual')
+# for i in range(2):
+#     for j in range(2):
+#         plt.text(j, i, str(conf_mat[i, j]), ha='center', va='center', color='red')
+plt.show()
