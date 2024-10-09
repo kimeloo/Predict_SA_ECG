@@ -124,7 +124,6 @@ plt.ylabel('loss')
 
 
 # FTP 연결 닫기
-sftp.close()
-transport.close()
+ftp.close()
 
 plt.show()
